@@ -1,0 +1,35 @@
+﻿@model ProductVM
+@{
+    ViewData["Title"] = "Product Detail";
+}
+
+<br />
+<br />
+<div class="jumbotron-detail row">
+    <div class="col-sm-8 offset-2 row">
+        <h2 class="col-sm-6">Product Detail</h2>
+        <div class="col-sm-3">
+            <a class="btn btn-primary" asp-area="" asp-controller="Home"
+               asp-action="Products">Back to selection</a>
+        </div><br /><br />
+        <hr />
+    </div>
+    <div class="city-container ">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Product Id</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>@Model.ProdID</td>
+                    <td>@Model.ProdName</td>
+                    <td>@Model.Price.ToString("C2")</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

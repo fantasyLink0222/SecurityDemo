@@ -1,0 +1,36 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<br />
+<br />
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="main-section col-md-6 row">
+            <h2 style="text-align: center;">Security Demo</h2>
+            <p> Every time a user visits your web application and enters their credentials,
+                they trust you with their information. Malicious users constantly try to 
+                exploit any vulnerabilities in your application to access this sensitive data. 
+                Click the buttons below to explore some common vulnerabilities.
+            </p>
+            <p><strong class="note-label">Note:</strong>
+                <span class="note-text">
+                    Registration and login are required to access valuable data on this site!
+                </span>
+            </p><br /><br />
+            <h2 style="text-align: center;">SQL Injection</h2>
+            <div class="col-sm-4 offset-1" style="text-align: center;">
+                <a class="btn btn-primary" asp-area="" asp-controller="Home"
+                   asp-action= "InjectionDemo">
+                   Form Elements Demo
+               </a>
+            </div>
+            <div class="col-sm-4 offset-1" style="text-align: center;">
+                <a class="btn btn-primary" asp-area="" asp-controller="Home"
+                   asp-action="Products">
+                    URL Parameters Demo
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

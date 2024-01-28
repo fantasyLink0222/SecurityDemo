@@ -1,0 +1,35 @@
+﻿@model List<string>
+
+@{
+    ViewData["Title"] = "Registered Users";
+}
+<br />
+<br />
+<div class="jumbotron-detail row">
+    <div class="col-sm-9 offset-3 row">
+        <div class="col-sm-6 offset-1 display-6">Registered Users</div>
+        <hr class="col-sm-8" />
+    </div><br /><br />
+    <div class="user-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>User Id</th>
+                    <th>User Name</th>
+                    <th>Role Id</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    string[] buildingDetails = item.Split(',');
+                    <tr style="text-align: left;">
+                        <td>@buildingDetails[0]</td>
+                        <td>@buildingDetails[1]</td>
+                        <td>@buildingDetails[2]</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
