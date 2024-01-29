@@ -16,6 +16,8 @@ namespace SecurityDemo.Data
         public DbSet<Room> Rooms { get; set; }
         public DbSet<City> Cities { get; set; }
 
+        public DbSet<Product> Products { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

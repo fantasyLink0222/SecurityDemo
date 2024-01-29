@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.IdentityModel.Tokens;
+using SecurityDemo.Data;
 using SecurityDemo.Models;
 using SecurityDemo.Repositories;
 using System.Diagnostics;
@@ -12,14 +15,17 @@ namespace SecurityDemo.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly IConfiguration _configuration;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly ApplicationDbContext _context;
 
         public HomeController( ILogger<HomeController> logger
                              , IConfiguration configuration
-                             , UserManager<IdentityUser> userManager)
+                             , UserManager<IdentityUser> userManager
+                             , ApplicationDbContext context  )
         {
             _logger = logger;
             _configuration = configuration;
             _userManager = userManager;
+            _context = context;
         }
 
         public IActionResult Index()
@@ -36,8 +42,8 @@ namespace SecurityDemo.Controllers
         [Authorize]
         public IActionResult InjectionDemo(string message = "")
         {
-            SqlDbRepository sqlDbRepository = new SqlDbRepository(_configuration);
-            List<string> cities = sqlDbRepository.GetCities(out string returnMessage);
+            SqlDbRepository sqlDbRepository = new SqlDbRepository(_configuration,_context);
+            List<City> cities = sqlDbRepository.GetCities(out string returnMessage);
 
             ViewData["Message"] = $"{message}{returnMessage}";
 
@@ -45,30 +51,33 @@ namespace SecurityDemo.Controllers
         }
 
         [Authorize]
-        public IActionResult BuildingsInCity(string cityId = "")
+        public IActionResult BuildingsInCity(int cityId )
         {
-            if (string.IsNullOrEmpty(cityId))
+            SqlDbRepository sqlDbRepository = new SqlDbRepository(_configuration, _context);
+
+           
+            var city = _context.Cities.Find(cityId);
+            if (city == null)
             {
                 return RedirectToAction("InjectionDemo", new { message = "Please select a city." });
             }
 
-            SqlDbRepository sqlDbRepository = new SqlDbRepository(_configuration);
 
-            string cityName = sqlDbRepository.GetCityName(cityId);
-            List<string> cityBuildings = new List<string> { cityName };
-            List<string> buildings = sqlDbRepository.GetBuildingsInCity(cityId);
+
+         
+            List<BuidlingRoomCityVM> buildings = sqlDbRepository.GetBuildingsInCity(cityId);
 
             if (buildings.Count() > 0)
             {
-                cityBuildings.AddRange(buildings);
+                return View(buildings);
             }
             else
             {
                 return RedirectToAction("InjectionDemo",
-                                    new { message = $"No buildings in {cityName}." });
+                                    new { message = $"No buildings in this city." });
             }
 
-            return View(cityBuildings);
+           
         }
 
         public async Task<IActionResult> AdminArea()
@@ -85,8 +94,9 @@ namespace SecurityDemo.Controllers
 
             if (roles.Contains("Admin"))
             {
-                SqlDbRepository sqlDbRepository = new SqlDbRepository(_configuration);
-                List<string> registeredUsers = sqlDbRepository.GetRegisteredUsers();
+              
+                SqlDbRepository sqlDbRepository = new SqlDbRepository(_configuration, _context);
+                List<string> registeredUsers = await sqlDbRepository.GetRegisteredUsers(_userManager);
 
                 return View(registeredUsers);
             }
@@ -102,7 +112,7 @@ namespace SecurityDemo.Controllers
         [Authorize]
         public ActionResult Products()
         {
-            SqlDbRepository sqlDbRepository = new SqlDbRepository(_configuration);
+            SqlDbRepository sqlDbRepository = new SqlDbRepository(_configuration, _context);
             List<ProductVM> products = sqlDbRepository.GetProducts();
 
             return View(products);
@@ -110,9 +120,11 @@ namespace SecurityDemo.Controllers
 
         [Authorize]
         public ActionResult DisplayProduct(string prodID)
+
         {
-            SqlDbRepository sqlDbRepository = new SqlDbRepository(_configuration);
-            ProductVM product = sqlDbRepository.GetProduct(prodID);
+            string sanitizedProdID = prodID.Replace("'", "''");
+            SqlDbRepository sqlDbRepository = new SqlDbRepository(_configuration, _context);
+            ProductVM product = sqlDbRepository.GetProduct(sanitizedProdID);
 
             return View(product);
         }

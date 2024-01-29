@@ -1,4 +1,4 @@
-﻿@model List<string>
+﻿@model List<City>
 @{
     ViewData["Title"] = "SQL Injection Demo";
     string message = ViewBag.Message ?? "";
@@ -23,10 +23,9 @@
                 <div class="form-group">
                     <select id="cityId" name="cityId" class="form-control">
                         <option value="">Make a selection</option>
-                        @foreach (string item in Model)
+                        @foreach (var item in Model)
                         {
-                            string[] city = item.Split(',');
-                            <option value="@city[0]">@city[1]</option>
+                            <option value="@item.cityId">@item.cityName</option>
                         }
                     </select>
                 </div>

@@ -1,36 +1,36 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.Sqlite;
+using SecurityDemo.Data;
 using SecurityDemo.Models;
 using System.Collections.Generic;
 using System.Data.SQLite;
+using System.Linq;
 
 namespace SecurityDemo.Repositories
 {
     public class SqlDbRepository
     {
         private readonly IConfiguration _configuration;
-
-        public SqlDbRepository(IConfiguration configuration)
+        private readonly ApplicationDbContext _context;
+        public SqlDbRepository(IConfiguration configuration,ApplicationDbContext context)
         {
             _configuration = configuration;
+            _context = context;
         }
-        public List<string> GetCities(out string message)
+
+
+
+   
+        public List<City> GetCities(out string message)
         {
             message = string.Empty;
-            List<string> cities = new List<string>();
-            string sql = "SELECT * FROM Cities;";
+            List<City> cities = new List<City>();
+            
 
             try
             {
-                string connectionString = "Data Source=.\\wwwroot\\sql.db";
-                SqliteConnection conn = new SqliteConnection(connectionString);
-                conn.Open();
-                SqliteCommand cmd = new SqliteCommand(sql, conn);
-                SqliteDataReader sdr = cmd.ExecuteReader();
-
-                while (sdr.Read())
-                {
-                    cities.Add($"{sdr.GetInt32(0)},{sdr.GetString(1)}");
-                }
+                cities = _context.Cities.ToList();
             }
             catch (Exception e)
             {
@@ -42,22 +42,20 @@ namespace SecurityDemo.Repositories
             }
             return cities;
         }
-        public string GetCityName(string cityId)
+
+  
+        public string GetCityName(int cityId)
         {
             string cityName = string.Empty;
-            string sql = $"SELECT CityName FROM Cities WHERE cityId = {cityId};";
 
             try
             {
-                string connectionString = "Data Source=.\\wwwroot\\sql.db";
-                SqliteConnection conn = new SqliteConnection(connectionString);
-                conn.Open();
-                SqliteCommand cmd = new SqliteCommand(sql, conn);
-                SqliteDataReader sdr = cmd.ExecuteReader();
-                while (sdr.Read())
-                {
-                    cityName = $"{sdr.GetString(0)}";
-                }
+               
+                    cityName = _context.Cities
+                                      .Where(c => c.cityId == cityId)
+                                      .Select(c => c.cityName)
+                                      .FirstOrDefault();
+               
             }
             catch (Exception e)
             {
@@ -66,35 +64,26 @@ namespace SecurityDemo.Repositories
             return cityName;
         }
 
-        public List<string> GetBuildingsInCity(string cityId)
+      
+        public List<BuidlingRoomCityVM> GetBuildingsInCity(int cityId)
         {
-            List<string> list = new List<string>();
+            List<BuidlingRoomCityVM> list = new List<BuidlingRoomCityVM>();
+            
 
             try
             {
-                string connectionString = "Data Source=.\\wwwroot\\sql.db";
-
-                using (SQLiteConnection connection = new SQLiteConnection(connectionString))
-                {
-                    connection.Open();
-
-                    string sql = $"SELECT Buildings.buildingId, Buildings.name, Rooms.name, " +
-                                 $"Rooms.capacity FROM Buildings INNER JOIN Rooms ON " +
-                                 $"Buildings.buildingId = Rooms.buildingId WHERE " +
-                                 $"Buildings.cityId = '{cityId}';";
-
-                    using (SQLiteCommand cmd = new SQLiteCommand(sql, connection))
-                    {
-                        using (SQLiteDataReader reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                list.Add($"{reader.GetInt32(0)},{reader.GetString(1)}," +
-                                         $"{reader.GetString(2)},{reader.GetInt32(3)}");
-                            }
-                        }
-                    }
-                }
+               
+                   list = _context.Buildings
+                                    .Where(b => b.cityId == cityId)      
+                                       .SelectMany(b => b.rooms, (b, r) => new BuidlingRoomCityVM
+                                       {
+                                           buildingId = b.buildingId,
+                                           buildingName = b.name,
+                                           roomName = r.name,
+                                           capacity = r.capacity,
+                                           cityName = b.city.cityName
+                                       }).ToList();  
+                
             }
             catch (Exception e)
             {
@@ -102,53 +91,122 @@ namespace SecurityDemo.Repositories
             }
             return list;
         }
-        public List<string> GetRegisteredUsers()
+       
+        public async Task<List<string>> GetRegisteredUsers(UserManager<IdentityUser> userManager)
         {
-            List<string> list = new List<string>();
-            string cityName = string.Empty;
+            var list = new List<string>();
+            var users = userManager.Users.ToList();
+
+            foreach (var user in users)
+            {
+                var roles = await userManager.GetRolesAsync(user);
+                var rolesString = string.Join(",", roles);
+                list.Add($"{user.Id},{user.UserName},{rolesString}");
+            }
+
+            return list;
+        }
+
+
+
+
+        //Change the GetProducts and GetProduct methods to use Entity Framework Core
+        public List<ProductVM> GetProducts()
+        {
+            List<ProductVM> productsVM = new List<ProductVM>();
 
             try
             {
-                string connectionString = "Data Source=.\\wwwroot\\sql.db";
+                productsVM = _context.Products
+             .Select(product => new ProductVM
+             {
+                 ProdName = product.prodName,
+                 ProdID = product.prodID,
+                 Price = product.price
+             })
+             .ToList();
+            }
+            catch (Exception e)
+            {
+                string message = $"Error retrieving city name: {e.Message}";
+            }
+            return productsVM;
+        }
+        public ProductVM GetProduct(string productID)
+        {
+            ProductVM productVM = new ProductVM();
 
-                using (SQLiteConnection connection = new SQLiteConnection(connectionString))
-                {
-                    connection.Open();
+            try
+            {
+                var product = _context.Products.Where(p => p.prodID == productID).FirstOrDefault();
 
-                    string sql = $"SELECT AspNetUsers.Id, AspNetUsers.UserName, " +
-                                    $"AspNetUserRoles.RoleId FROM AspNetUsers INNER " +
-                                    $"JOIN AspNetUserRoles ON AspNetUsers.Id = " +
-                                    $"AspNetUserRoles.UserId INNER JOIN AspNetRoles " +
-                                    $"ON AspNetUserRoles.RoleId = AspNetRoles.Id;";
-
-                    using (SQLiteCommand cmd = new SQLiteCommand(sql, connection))
+                if (product != null) {
+                    productVM = new ProductVM
                     {
-                        using (SQLiteDataReader reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                list.Add($"{reader.GetString(0)},{reader.GetString(1)}," +
-                                            $"{reader.GetString(2)}");
-                            }
-                        }
-                    }
+                        ProdName = product.prodName,
+                        ProdID = product.prodID,
+                        Price = product.price
+                    };
+                }
+                else
+                {
+                    productVM = null;
                 }
             }
             catch (Exception e)
             {
                 string message = $"Error retrieving city name: {e.Message}";
             }
-            return list;
+
+            return productVM;
         }
-        public List<string> GetBuildingsInCity2(string cityId)
+
+
+        /*public List<string> GetRegisteredUsers()
+       {
+           List<string> list = new List<string>();
+           string cityName = string.Empty;
+
+           try
+           {
+               string connectionString = "Data Source=.\\wwwroot\\sql.db";
+
+               using (SQLiteConnection connection = new SQLiteConnection(connectionString))
+               {
+                   connection.Open();
+
+                   string sql = $"SELECT AspNetUsers.Id, AspNetUsers.UserName, " +
+                                   $"AspNetUserRoles.RoleId FROM AspNetUsers INNER " +
+                                   $"JOIN AspNetUserRoles ON AspNetUsers.Id = " +
+                                   $"AspNetUserRoles.UserId INNER JOIN AspNetRoles " +
+                                   $"ON AspNetUserRoles.RoleId = AspNetRoles.Id;";
+
+                   using (SQLiteCommand cmd = new SQLiteCommand(sql, connection))
+                   {
+                       using (SQLiteDataReader reader = cmd.ExecuteReader())
+                       {
+                           while (reader.Read())
+                           {
+                               list.Add($"{reader.GetString(0)},{reader.GetString(1)}," +
+                                           $"{reader.GetString(2)}");
+                           }
+                       }
+                   }
+               }
+           }
+           catch (Exception e)
+           {
+               string message = $"Error retrieving city name: {e.Message}";
+           }
+           return list;
+       }*/
+
+
+        /*public List<Building> GetBuildingsInCity2(int cityId)
         {
             string message = string.Empty;
-            List<string> list = new List<string>();
-            string sql = $"SELECT Buildings.buildingId, Buildings.name, Rooms.name, " +
-                         $"Rooms.capacity FROM Buildings INNER JOIN Rooms ON " +
-                         $"Buildings.buildingId = Rooms.buildingId WHERE " +
-                         $"Buildings.cityId = '1';";
-
+            List<Building> list = new List<Building>();
+           
             try
             {
                 string connectionString = "Data Source=.\\wwwroot\\sql.db";
@@ -174,82 +232,84 @@ namespace SecurityDemo.Repositories
             return list;
         }
 
-        public List<ProductVM> GetProducts()
-        {
-            List<ProductVM> products = new List<ProductVM>();
+      public List<ProductVM> GetProducts()
+         {
+             List<ProductVM> products = new List<ProductVM>();
 
-            try
-            {
-                string connectionString = "Data Source=.\\wwwroot\\sql.db";
+             try
+             {
+                 string connectionString = "Data Source=.\\wwwroot\\sql.db";
 
-                using (SQLiteConnection connection = new SQLiteConnection(connectionString))
-                {
-                    connection.Open();
+                 using (SQLiteConnection connection = new SQLiteConnection(connectionString))
+                 {
+                     connection.Open();
 
-                    string sql = $"SELECT * FROM Products";
+                     string sql = $"SELECT * FROM Products";
 
-                    using (SQLiteCommand cmd = new SQLiteCommand(sql, connection))
-                    {
-                        using (SQLiteDataReader reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                products.Add(new ProductVM
-                                {
-                                    ProdName = (string)reader["prodName"],
-                                    ProdID = (string)reader["prodID"],
-                                    Price = (decimal)reader["price"]
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                string message = $"Error retrieving city name: {e.Message}";
-            }
-            return products;
-        }
+                     using (SQLiteCommand cmd = new SQLiteCommand(sql, connection))
+                     {
+                         using (SQLiteDataReader reader = cmd.ExecuteReader())
+                         {
+                             while (reader.Read())
+                             {
+                                 products.Add(new ProductVM
+                                 {
+                                     ProdName = (string)reader["prodName"],
+                                     ProdID = (string)reader["prodID"],
+                                     Price = (decimal)reader["price"]
+                                 });
+                             }
+                         }
+                     }
+                 }
+             }
+             catch (Exception e)
+             {
+                 string message = $"Error retrieving city name: {e.Message}";
+             }
+             return products;
+         }
 
-        public ProductVM GetProduct(string productID)
-        {
-            ProductVM productVM = new ProductVM();
+         public ProductVM GetProduct(string productID)
+         {
+             ProductVM productVM = new ProductVM();
 
-            try
-            {
-                string connectionString = "Data Source=.\\wwwroot\\sql.db";
+             try
+             {
+                 string connectionString = "Data Source=.\\wwwroot\\sql.db";
 
-                using (SQLiteConnection connection = new SQLiteConnection(connectionString))
-                {
-                    connection.Open();
+                 using (SQLiteConnection connection = new SQLiteConnection(connectionString))
+                 {
+                     connection.Open();
 
-                    string sql = $"SELECT * FROM products WHERE prodID= {productID}";
+                     string sql = $"SELECT * FROM products WHERE prodID= {productID}";
 
-                    using (SQLiteCommand cmd = new SQLiteCommand(sql, connection))
-                    {
-                        using (SQLiteDataReader reader = cmd.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
 
-                                productVM = new ProductVM
-                                {
-                                    ProdName = (string)reader["prodName"],
-                                    ProdID = (string)reader["prodID"],
-                                    Price = (decimal)reader["price"]
-                                };
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                string message = $"Error retrieving city name: {e.Message}";
-            }
+                     using (SQLiteCommand cmd = new SQLiteCommand(sql, connection))
+                     {
+                         using (SQLiteDataReader reader = cmd.ExecuteReader())
+                         {
+                             while (reader.Read())
+                             {
 
-            return productVM;
-        }
+                                 productVM = new ProductVM
+                                 {
+                                     ProdName = (string)reader["prodName"],
+                                     ProdID = (string)reader["prodID"],
+                                     Price = (decimal)reader["price"]
+                                 };
+                             }
+                         }
+                     }
+                 }
+             }
+             catch (Exception e)
+             {
+                 string message = $"Error retrieving city name: {e.Message}";
+             }
+
+             return productVM;
+         }*/
+
     }
 }

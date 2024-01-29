@@ -1,15 +1,14 @@
-﻿@model List<string>
+﻿@model List<BuidlingRoomCityVM>
 
 @{
     ViewData["Title"] = "Buildings In City";
-    string itemType = Model[0];
-    Model.Remove(itemType);
+    
 }
 <br />
 <br />
 <div class="jumbotron-detail row">
     <div class="col-sm-8 offset-3 row">
-        <div class="col-sm-6 display-6">Buildings in @itemType</div>
+        <div class="col-sm-6 display-6">Buildings in @Model[0].cityName</div>
         <div class="col-sm-3">
             <a class="btn btn-primary" asp-area="" asp-controller="Home"
                asp-action="InjectionDemo">Back to selection</a>
@@ -29,12 +28,13 @@
             <tbody>
                 @foreach (var item in Model)
                 {
-                    string[] buildingDetails = item.Split(',');
+                    
                     <tr>
-                        <td>@buildingDetails[0]</td>
-                        <td>@buildingDetails[1]</td>
-                        <td>@buildingDetails[2]</td>
-                        <td>@buildingDetails[3]</td>
+                        <td>@item.buildingId</td>
+                        <td>@item.buildingName</td>
+                        <td>@item.roomName</td>
+                        <td>@item.capacity</td>
+                       
                     </tr>
                 }
             </tbody>

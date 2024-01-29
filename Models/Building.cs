@@ -8,5 +8,6 @@
         public List<Room> rooms { get; set; }
         public City city { get; set; }
 
+
     }
 }
